@@ -37,8 +37,8 @@ Follow these steps to set up and run the project on your local machine.
 First, clone the project repository from GitHub:
 
 ```bash
-git clone <YOUR_GIT_URL>
-cd <YOUR_PROJECT_NAME>
+git clone https://github.com/ankush-10010/structify-visualizer-ai.git
+cd https://github.com/ankush-10010/structify-visualizer-ai.git
 ```
 
 ### 2. Set Up the Backend
