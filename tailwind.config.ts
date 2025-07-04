@@ -52,16 +52,25 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
-					foreground: 'hsl(var(--sidebar-foreground))',
-					primary: 'hsl(var(--sidebar-primary))',
-					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-					accent: 'hsl(var(--sidebar-accent))',
-					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-					border: 'hsl(var(--sidebar-border))',
-					ring: 'hsl(var(--sidebar-ring))'
-				}
+				/* StructifyAI custom colors */
+				'electric-blue': 'hsl(var(--electric-blue))',
+				'mint-green': 'hsl(var(--mint-green))',
+				'dark-surface': 'hsl(var(--dark-surface))',
+				'glass-surface': 'hsl(var(--glass-surface))'
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-glow': 'var(--gradient-glow)',
+				'gradient-surface': 'var(--gradient-surface)'
+			},
+			boxShadow: {
+				'glow': 'var(--shadow-glow)',
+				'glass': 'var(--shadow-glass)',
+				'float': 'var(--shadow-float)'
+			},
+			transitionTimingFunction: {
+				'smooth': 'var(--transition-smooth)',
+				'bounce': 'var(--transition-bounce)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
