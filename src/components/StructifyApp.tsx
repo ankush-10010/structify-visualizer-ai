@@ -5,6 +5,7 @@ import { UploadZone } from './UploadZone';
 import { ProcessingPipeline } from './ProcessingPipeline';
 import { ResultsDashboard } from './ResultsDashboard';
 import { useToast } from '@/hooks/use-toast';
+import { processImage } from '@/backend';
 
 interface ProcessedFile {
   name: string;
@@ -47,13 +48,14 @@ export function StructifyApp() {
         await new Promise(resolve => setTimeout(resolve, delay));
       }
 
-      // Simulate API call to backend
-      const formData = new FormData();
-      formData.append('floorplan', file);
-
-      // For demo purposes, create mock processed files
-      const mockFiles = await createMockProcessedFiles();
-      setProcessedFiles(mockFiles);
+      // Call backend to process image
+      const zipBlob = await processImage(file);
+      
+      // Extract files from zip
+      const zip = new JSZip();
+      const zipContent = await zip.loadAsync(zipBlob);
+      const extractedFiles = await extractFilesFromZip(zipContent);
+      setProcessedFiles(extractedFiles);
       
       setAppState('results');
       
@@ -73,71 +75,34 @@ export function StructifyApp() {
     }
   };
 
-  const createMockProcessedFiles = async (): Promise<ProcessedFile[]> => {
-    // Create mock files for demonstration
+  const extractFilesFromZip = async (zip: JSZip): Promise<ProcessedFile[]> => {
     const files: ProcessedFile[] = [];
 
-    // Mock JPG segmentations
-    for (let i = 1; i <= 4; i++) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 400;
-      canvas.height = 300;
-      const ctx = canvas.getContext('2d')!;
-      
-      // Create different colored rectangles for different segments
-      const colors = ['#00D2FF', '#00FFA3', '#FF6B6B', '#FFB800'];
-      ctx.fillStyle = colors[i - 1];
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '24px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`Segment ${i}`, canvas.width / 2, canvas.height / 2);
-
-      const blob = await new Promise<Blob>(resolve => 
-        canvas.toBlob(resolve as BlobCallback, 'image/jpeg', 0.8)
-      );
-
-      files.push({
-        name: `segment_${i}.jpg`,
-        type: 'jpg',
-        blob: blob!,
-        url: URL.createObjectURL(blob!)
-      });
-    }
-
-    // Mock GeoJSON
-    const mockGeoJSON = {
-      type: "FeatureCollection",
-      features: [
-        {
-          type: "Feature",
-          properties: { type: "wall", id: "wall_1" },
-          geometry: {
-            type: "LineString",
-            coordinates: [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]]
-          }
+    for (const fileName of Object.keys(zip.files)) {
+      const file = zip.files[fileName];
+      if (!file.dir) {
+        const blob = await file.async('blob');
+        const url = URL.createObjectURL(blob);
+        
+        let type: 'jpg' | 'geojson' | 'ifc';
+        if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+          type = 'jpg';
+        } else if (fileName.endsWith('.geojson')) {
+          type = 'geojson';
+        } else if (fileName.endsWith('.ifc')) {
+          type = 'ifc';
+        } else {
+          continue; // Skip unknown file types
         }
-      ]
-    };
 
-    const geojsonBlob = new Blob([JSON.stringify(mockGeoJSON)], { type: 'application/json' });
-    files.push({
-      name: 'structure.geojson',
-      type: 'geojson',
-      blob: geojsonBlob,
-      url: URL.createObjectURL(geojsonBlob)
-    });
-
-    // Mock IFC file
-    const mockIFC = "ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');\nDATA;\nENDSEC;\nEND-ISO-10303-21;";
-    const ifcBlob = new Blob([mockIFC], { type: 'application/octet-stream' });
-    files.push({
-      name: 'model.ifc',
-      type: 'ifc',
-      blob: ifcBlob,
-      url: URL.createObjectURL(ifcBlob)
-    });
+        files.push({
+          name: fileName,
+          type,
+          blob,
+          url
+        });
+      }
+    }
 
     return files;
   };
