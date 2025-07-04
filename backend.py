@@ -340,7 +340,7 @@ async def process_image(image: UploadFile = File(...)):
 import uvicorn
 from pyngrok import ngrok
 import nest_asyncio
-!ngrok authtoken 2zESaoP7W8ztZ2dApfVNgyIGawV_6uEns7U4d35KaDqfxstLz
+!ngrok authtoken 2zESaoP7W8ztngrokurl5KaDqfxstLz
 # Allow async in Colab
 nest_asyncio.apply()
 # Start ngrok tunnel
