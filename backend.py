@@ -29,7 +29,9 @@ from fastapi.responses import JSONResponse
 import io
 import base64
 from PIL import Image
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse 
+from typing import Optional
+
 OUTPUT_DIR = "output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -111,7 +113,7 @@ def mask_to_polygons(mask, min_area=100):
                 polygons.append(poly)
     return polygons
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import JSONResponse
 import shutil
 from fastapi.middleware.cors import CORSMiddleware
@@ -130,9 +132,43 @@ OUTPUT_DIR = "output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 @app.post("/process")
-async def process_image(image: UploadFile = File(...)):
+async def process_image(
+    image: UploadFile = File(...),
+    bedroom:Optional[float] = Form(None),
+    dining_room:Optional[float] = Form(None),
+    kitchen:Optional[float] = Form(None),
+    sofa:Optional[float] = Form(None),
+    living_room:Optional[float] = Form(None),
+    toilet:Optional[float] = Form(None),
+    bed:Optional[float] = Form(None),
+    wardrobe:Optional[float] = Form(None),
+    commode:Optional[float] = Form(None),
+    door: Optional[float]= Form(None),
+):
     if image.content_type not in ["image/jpeg", "image/png"]:
         raise HTTPException(status_code=400, detail="Invalid image format")
+    
+    
+    if bedroom is not None:
+        CLASS_THRESHOLDS['Bedroom'] = bedroom
+    if dining_room is not None:
+        CLASS_THRESHOLDS['Dining Room'] = dining_room
+    if kitchen is not None:
+        CLASS_THRESHOLDS['Kitchen'] = kitchen
+    if sofa is not None:
+        CLASS_THRESHOLDS['Sofa'] = sofa
+    if living_room is not None:
+        CLASS_THRESHOLDS['Living Room'] = living_room
+    if toilet is not None:
+        CLASS_THRESHOLDS['toilet'] = toilet
+    if bed is not None:
+        CLASS_THRESHOLDS['Bed'] = bed
+    if wardrobe is not None:
+        CLASS_THRESHOLDS['Wardrobe'] = wardrobe
+    if commode is not None:
+        CLASS_THRESHOLDS['commode'] = commode
+    if door is not None:
+        CLASS_THRESHOLDS['door'] = door
 
     image_path = os.path.join(OUTPUT_DIR, "uploaded_image.jpg")
 
@@ -336,17 +372,3 @@ async def process_image(image: UploadFile = File(...)):
         media_type="application/x-zip-compressed",
         headers={"Content-Disposition": "attachment; filename=structify_output.zip"}
     )
-
-import uvicorn
-from pyngrok import ngrok
-import nest_asyncio
-!ngrok authtoken 2zESaoP7W8ztngrokurl5KaDqfxstLz
-# Allow async in Colab
-nest_asyncio.apply()
-# Start ngrok tunnel
-public_url = ngrok.connect(8000)
-print("Public URL:", public_url)
-
-# Run FastAPI server
-uvicorn.run(app, host="0.0.0.0", port=8000)
-
