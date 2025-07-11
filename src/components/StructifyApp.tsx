@@ -5,7 +5,7 @@ import { UploadZone } from './UploadZone';
 import { ProcessingPipeline } from './ProcessingPipeline';
 import { ResultsDashboard } from './ResultsDashboard';
 import { useToast } from '@/hooks/use-toast';
-import { processImage } from '@/backend';
+import { processImage, reprocessImage } from '@/backend';
 
 interface ProcessedFile {
   name: string;
@@ -21,10 +21,12 @@ export function StructifyApp() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingStep, setProcessingStep] = useState(0);
   const [processedFiles, setProcessedFiles] = useState<ProcessedFile[]>([]);
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   const handleFileUpload = async (file: File) => {
     try {
+      setOriginalFile(file); // Store original file for reprocessing
       setAppState('processing');
       setUploadProgress(0);
       setProcessingStep(0);
@@ -121,10 +123,66 @@ export function StructifyApp() {
     });
   };
 
+  const handleReprocess = async (thresholds: Record<string, number>) => {
+    if (!originalFile) {
+      toast({
+        title: "Error",
+        description: "Original image not found. Please upload again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setAppState('processing');
+      setUploadProgress(0);
+      setProcessingStep(0);
+
+      // Simulate processing steps for reprocessing
+      const steps = [
+        { step: 0, delay: 500, description: 'Applying thresholds...' },
+        { step: 1, delay: 1500, description: 'Re-segmenting image...' },
+        { step: 2, delay: 1000, description: 'Updating vectors...' },
+        { step: 3, delay: 1500, description: 'Rebuilding 3D model...' },
+      ];
+
+      for (const { step, delay } of steps) {
+        setProcessingStep(step);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+
+      // Call backend to reprocess image
+      const zipBlob = await reprocessImage(originalFile, thresholds);
+      
+      // Extract files from zip
+      const zip = new JSZip();
+      const zipContent = await zip.loadAsync(zipBlob);
+      const extractedFiles = await extractFilesFromZip(zipContent);
+      setProcessedFiles(extractedFiles);
+      
+      setAppState('results');
+      
+      toast({
+        title: "Reprocessing Complete!",
+        description: "Your floorplan has been reprocessed with new thresholds.",
+      });
+
+    } catch (error) {
+      console.error('Reprocessing failed:', error);
+      toast({
+        title: "Reprocessing Failed",
+        description: "There was an error reprocessing your floorplan. Please try again.",
+        variant: "destructive",
+      });
+      setAppState('results'); // Return to results instead of upload
+    }
+  };
+
   const handleReset = () => {
     setAppState('upload');
     setUploadProgress(0);
     setProcessingStep(0);
+    setOriginalFile(null);
     // Clean up URLs
     processedFiles.forEach(file => URL.revokeObjectURL(file.url));
     setProcessedFiles([]);
@@ -197,6 +255,7 @@ export function StructifyApp() {
               <ResultsDashboard
                 files={processedFiles}
                 onDownload={handleDownload}
+                onReprocess={handleReprocess}
               />
             </motion.div>
           )}

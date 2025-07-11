@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, Image, Map, Box, ZoomIn } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download, Image, Map, Box, ZoomIn, RefreshCw } from 'lucide-react';
 import { ImageGallery } from './ImageGallery';
 import { MapViewer } from './MapViewer';
 import { ModelViewer } from './ModelViewer';
@@ -18,10 +19,18 @@ interface ProcessedFile {
 interface ResultsDashboardProps {
   files: ProcessedFile[];
   onDownload: (file: ProcessedFile) => void;
+  onReprocess?: (thresholds: Record<string, number>) => void;
 }
 
-export function ResultsDashboard({ files, onDownload }: ResultsDashboardProps) {
+export function ResultsDashboard({ files, onDownload, onReprocess }: ResultsDashboardProps) {
   const [activeTab, setActiveTab] = useState('images');
+  const [thresholds, setThresholds] = useState<Record<string, number>>({});
+  const [isReprocessing, setIsReprocessing] = useState(false);
+
+  const thresholdOptions = [
+    'bedroom', 'dining room', 'kitchen', 'sofa', 'living room', 
+    'toilet', 'bed', 'wardrobe', 'commode', 'door'
+  ];
 
   const jpgFiles = files.filter(f => f.type === 'jpg');
   const geojsonFile = files.find(f => f.type === 'geojson');
@@ -29,6 +38,26 @@ export function ResultsDashboard({ files, onDownload }: ResultsDashboardProps) {
 
   const handleDownloadAll = () => {
     files.forEach(file => onDownload(file));
+  };
+
+  const handleThresholdChange = (item: string, value: string) => {
+    setThresholds(prev => ({
+      ...prev,
+      [item]: parseFloat(value) || 0
+    }));
+  };
+
+  const handleReprocess = async () => {
+    if (!onReprocess) return;
+    
+    setIsReprocessing(true);
+    try {
+      await onReprocess(thresholds);
+    } catch (error) {
+      console.error('Reprocessing failed:', error);
+    } finally {
+      setIsReprocessing(false);
+    }
   };
 
   return (
@@ -90,6 +119,48 @@ export function ResultsDashboard({ files, onDownload }: ResultsDashboardProps) {
               <p className="text-xs text-muted-foreground">{ifcFile ? '1 IFC file' : 'Not available'}</p>
             </div>
           </div>
+        </div>
+
+        {/* Thresholds Section */}
+        <div className="mt-6 p-4 rounded-lg bg-muted/20 border border-border/30">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Adjust Thresholds</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+            {thresholdOptions.map((item) => (
+              <div key={item} className="space-y-2">
+                <label className="text-sm font-medium text-foreground capitalize">
+                  {item}
+                </label>
+                <Select 
+                  value={thresholds[item]?.toString() || ""} 
+                  onValueChange={(value) => handleThresholdChange(item, value)}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="0.5" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0.1">0.1</SelectItem>
+                    <SelectItem value="0.2">0.2</SelectItem>
+                    <SelectItem value="0.3">0.3</SelectItem>
+                    <SelectItem value="0.4">0.4</SelectItem>
+                    <SelectItem value="0.5">0.5</SelectItem>
+                    <SelectItem value="0.6">0.6</SelectItem>
+                    <SelectItem value="0.7">0.7</SelectItem>
+                    <SelectItem value="0.8">0.8</SelectItem>
+                    <SelectItem value="0.9">0.9</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+          <Button
+            onClick={handleReprocess}
+            disabled={isReprocessing || !onReprocess}
+            className="gap-2"
+            variant="secondary"
+          >
+            <RefreshCw className={`w-4 h-4 ${isReprocessing ? 'animate-spin' : ''}`} />
+            {isReprocessing ? 'Reprocessing...' : 'Reprocess Image'}
+          </Button>
         </div>
       </Card>
 
