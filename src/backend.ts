@@ -1,4 +1,4 @@
-export const BASE_URL = "https://<your-backend-url>";
+export const BASE_URL = "https://eca528966d51.ngrok-free.app";
 
 export async function processImage(file: File): Promise<Blob> {
   const formData = new FormData();
@@ -17,9 +17,12 @@ export async function processImage(file: File): Promise<Blob> {
 export async function reprocessImage(file: File, thresholds: Record<string, number>): Promise<Blob> {
   const formData = new FormData();
   formData.append("image", file);
-  formData.append("thresholds", JSON.stringify(thresholds));
+  // Append each threshold as an individual field
+  for (const [key, value] of Object.entries(thresholds)) {
+    formData.append(key, value.toString());
+  }
 
-  const response = await fetch(`${BASE_URL}/reprocess`, {
+  const response = await fetch(`${BASE_URL}/process`, {
     method: "POST",
     body: formData,
   });
